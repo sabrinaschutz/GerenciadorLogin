@@ -64,7 +64,7 @@ public class GerenciadorLogin {
     private void inserirLogin() {
         try {
 
-            System.out.println("Insira um novo nome de usuário:");
+            System.out.println("\n\nInsira um novo nome de usuário:");
             String login = input.nextLine();
 
             System.out.println("Insira uma senha:");
@@ -95,7 +95,7 @@ public class GerenciadorLogin {
 
     private void autenticar() {
         try {
-            System.out.println("Usuário:");
+            System.out.println("\n\nUsuário:");
             String login = input.nextLine();
 
             System.out.println("Senha:");
