@@ -2,39 +2,28 @@ package gerenciadorlogin;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
-import java.io.Console;
 import java.io.FileWriter;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.nio.charset.StandardCharsets;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidKeyException;
-import java.security.Key;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
 import java.security.SecureRandom;
 import java.security.Security;
+import java.util.Base64;
 import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
-import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.Mac;
-import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
-import javax.crypto.ShortBufferException;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 import org.apache.commons.codec.binary.Hex;
 import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
+import org.bouncycastle.jce.provider.BouncyCastleProvider; 
 
 /**
  *
@@ -51,26 +40,24 @@ public class GerenciadorLogin {
     public static void main(String[] args) {
         GerenciadorLogin gl = new GerenciadorLogin();
         System.out.println("######## SISTEMA SUPER SECRETO ########"
-                + "\n"
-                + "\n"
-                + "\nBem vinda(o)!");
+                + "\n\n\nBem vinda(o)!");
         gl.menu();
     }
 
     public void menu() {
         System.out.println(""
-                + "\nO que deja fazer?"
+                + "\n\nO que deja fazer?"
                 + "\n"
-                + "\n1-Iserir novo usuário"
-                + "\n2-Autenticar"
+                + "\n1-Autenticar"
+                + "\n2-Inserir novo usuário"
                 + "\n");
 
         String opcao = input.nextLine();
 
         if (opcao.equals("1")) {
-            this.inserirLogin();
-        } else if (opcao.equals("2")) {
             this.autenticar();
+        } else if (opcao.equals("2")) {
+            this.inserirLogin();
         }
     }
 
@@ -87,7 +74,7 @@ public class GerenciadorLogin {
             byte[] chaveDerivHmacLogin = derivarChave(senha, saltHmacLogin);
 
             byte[] saltHmacSenha = getSalt().getBytes();
-            byte[] chaveDerivHmacSenha = derivarChave(Utils.toString(chaveDerivHmacLogin), saltHmacLogin);
+            byte[] chaveDerivHmacSenha = derivarChave(Utils.toString(chaveDerivHmacLogin), saltHmacSenha);
 
             String loginCifrado = encrypt(chaveDerivHmacLogin, login, saltHmacLogin);
 
@@ -167,19 +154,21 @@ public class GerenciadorLogin {
     }
 
     public String encrypt(byte[] senha, String texto, byte[] saltHmac) {
-
+        //int addProvider = Security.addProvider(new BouncyCastleFipsProvider());
         try {
             SecureRandom r = SecureRandom.getInstance("SHA1PRNG");
 
             byte[] saltCifra = getSalt().getBytes();
 
             byte[] chaveDerivHmac = senha;
-            byte[] chaveDerivCifra = derivarChave(Utils.toString(chaveDerivHmac), saltHmac);
+            byte[] chaveDerivCifra = derivarChave(Utils.toString(chaveDerivHmac), saltCifra);
 
             SecretKeySpec chaveCifra = new SecretKeySpec(chaveDerivCifra, "AES");
             Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
-            cipher.init(Cipher.ENCRYPT_MODE, chaveCifra, new GCMParameterSpec(128, saltCifra));
-            byte[] textoCifrado = cipher.doFinal(Utils.toByteArray(texto));
+            cipher.init(Cipher.ENCRYPT_MODE, chaveCifra, new GCMParameterSpec(128,saltCifra));
+            byte[] textoCifrado = cipher.doFinal(texto.getBytes(StandardCharsets.UTF_8));
+            
+            System.out.println(Base64.getEncoder().encodeToString(textoCifrado));
 
             SecretKeySpec chaveHmac = new SecretKeySpec(chaveDerivHmac, "HmacSHA256");
             Mac hmac = Mac.getInstance("HmacSHA256");
@@ -216,7 +205,7 @@ public class GerenciadorLogin {
 
                 SecretKeySpec chaveCifra = new SecretKeySpec(chaveDerivCifra, "AES");
                 Cipher c = Cipher.getInstance("AES/GCM/NoPadding");
-                c.init(Cipher.DECRYPT_MODE, chaveCifra, new GCMParameterSpec(128, saltCifra));
+                c.init(Cipher.DECRYPT_MODE, chaveCifra, new GCMParameterSpec(128,saltCifra));
                 byte[] s = c.doFinal(textoCifrado);
 
                 if (s.equals(texto)) {
